@@ -1,0 +1,40 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+
+# Uncomment this to turn on verbose mode.
+export DH_VERBOSE=1
+
+# Possible targets
+#binary binary-arch binary-indep build build-arch build-indep clean install install-arch install-indep
+
+%:
+	echo "Invoking debhelper $@"
+	dh $@ 
+
+clean:
+	echo "Invoking scons -c for target $@"
+	scons -c
+	dh clean
+
+build:
+	echo "Building with scons libs and target dest /tmp/ddd-discard for target $@"
+	mkdir -p /tmp/ddd-discard
+	DESTDIR=/tmp/ddd-discard scons libs
+	rm -rf /tmp/ddd-discard
+	dh build
+	
+override_dh_auto_install:
+	echo "Overrding dh_auto_install target"
+	DESTDIR=$$(pwd)/debian/tmp scons libs
+    
+#binary:
+#	echo "Building binary with scons libs and target dest / for target $@"
+#	echo `pwd`
+#	DESTDIR=debian/tmp scons libs
+#	dh binary
+
+install:
+	echo "Installing binary and headers to $DESTDIR for target $@"
+	DESTDIR=$$(pwd)/debian/developer-debug-display/ scons libs
+	DESTDIR=$$(pwd)/debian/developer-debug-display-dev/ scons libs
+	dh install
