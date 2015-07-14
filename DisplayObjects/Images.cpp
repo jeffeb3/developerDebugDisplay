@@ -59,8 +59,10 @@ osg::ref_ptr<osg::Node> get(const ImageVec_t& images)
         // create the texture for the image
         osg::ref_ptr<osg::Texture2D> texture( new osg::Texture2D() );
         texture->setResizeNonPowerOfTwoHint(false);
-        texture->setDataVariance(osg::Object::DYNAMIC);
+        texture->setDataVariance(osg::Object::STATIC);
         texture->setImage( image.image );
+        texture->setFilter(osg::Texture::MIN_FILTER, osg::Texture::NEAREST);
+        texture->setFilter(osg::Texture::MAG_FILTER, osg::Texture::NEAREST);
 
         // put this in decal mode
         osg::ref_ptr<osg::TexEnv> decalTexEnv( new osg::TexEnv() );
