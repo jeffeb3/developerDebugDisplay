@@ -68,12 +68,12 @@ osg::ref_ptr<osg::Node> get(const MeshGrid& meshGrid)
     {
         if ( not ((ii+1) % meshGrid.width) ) ++ii;
         osg::ref_ptr<osg::DrawElementsUInt>
-            pyramidBase(new osg::DrawElementsUInt(osg::PrimitiveSet::QUADS, 0));
-        pyramidBase->push_back(ii);
-        pyramidBase->push_back(ii+1);
-        pyramidBase->push_back(ii+meshGrid.width+1);
-        pyramidBase->push_back(ii+meshGrid.width);
-        polygon->addPrimitiveSet(pyramidBase);
+            quad(new osg::DrawElementsUInt(osg::PrimitiveSet::QUADS, 0));
+        quad->push_back(ii);
+        quad->push_back(ii+1);
+        quad->push_back(ii+meshGrid.width+1);
+        quad->push_back(ii+meshGrid.width);
+        polygon->addPrimitiveSet(quad);
     }
 
     // create a geode for this
