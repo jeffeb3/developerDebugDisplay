@@ -103,6 +103,8 @@ class TreeView : public QTreeView
         const std::string& getName() const { return m_name; };
         const osg::ref_ptr<osg::Node> getNode()  { return m_node; };
         void setNode(osg::ref_ptr<osg::Node> node) { m_node = node; };
+        void setPriorNodeMask(const osg::Node::NodeMask& mask) { m_priorNodeMask = mask; };
+        const osg::Node::NodeMask& getPriorNodeMask() const { return m_priorNodeMask; };
         /// @}
 
       private:
@@ -112,6 +114,9 @@ class TreeView : public QTreeView
 
         /// The node
         osg::ref_ptr<osg::Node>     m_node;
+
+        /// The old node mask
+        osg::Node::NodeMask         m_priorNodeMask;
     };
 
     /// @brief   Internal ethod to add an object to the osg display

@@ -138,8 +138,17 @@ void TreeView::clicked(const QModelIndex& index)
 
         // lock osg and set the node mask based on the checked state
         m_pOsgWidget->lock();
-        if ( Qt::Checked == item->checkState() ) item->getNode()->setNodeMask(~0);
-        else                                     item->getNode()->setNodeMask(0);
+        if ( Qt::Checked == item->checkState() )
+        {
+            //item->getNode()->setNodeMask(~0);
+            item->getNode()->setNodeMask(item->getPriorNodeMask());
+        }
+        else
+        {
+            if ( item->isEnabled() )
+                item->setPriorNodeMask(item->getNode()->getNodeMask());
+            item->getNode()->setNodeMask(0);
+        }
 
         // now we have to recursively process the children to have them match
         // this entry's checked state
@@ -263,9 +272,9 @@ bool TreeView::addToEntry(d3DisplayItem* entry,
 /////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////
 bool TreeView::replaceNode(d3DisplayItem* entry,
-                             const osg::ref_ptr<osg::Node> node,
-                             const bool& enableNode,
-                             d3DisplayItem* myParent)
+                           const osg::ref_ptr<osg::Node> node,
+                           const bool& enableNode,
+                           d3DisplayItem* myParent)
 {
     // get the lock
     m_pOsgWidget->lock();
@@ -415,7 +424,7 @@ TreeView::d3DisplayItem* TreeView::findChild(const d3DisplayItem* myParent,
 /////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////
 void TreeView::updateChildren(d3DisplayItem* item,
-                                const bool& checked)
+                              const bool& checked)
 {
     item->setEnabled(checked);
 
@@ -425,14 +434,25 @@ void TreeView::updateChildren(d3DisplayItem* item,
         d3DisplayItem* child( static_cast<d3DisplayItem*>(item->child(ii)) );
         if ( nullptr == child ) break;
         if ( Qt::Checked == item->checkState() )
+        {
             updateChildren(child, checked);
+        }
         ++ii;
     }
 
     if ( checked && Qt::Checked == item->checkState() )
-        item->getNode()->setNodeMask(~0);
-    else
+    {
+        item->getNode()->setNodeMask(item->getPriorNodeMask());
+    }
+    else if ( Qt::Checked == item->checkState() )
+    {
+        item->setPriorNodeMask(item->getNode()->getNodeMask());
         item->getNode()->setNodeMask(0);
+    }
+    else
+    {
+        item->getNode()->setNodeMask(0);
+    }
 };
 
 } // namespace d3
