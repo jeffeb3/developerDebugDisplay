@@ -96,7 +96,7 @@ void TreeView::setOsgWidget(QOSGWidget* widget)
 bool TreeView::add(const std::string& name,
                    const osg::ref_ptr<osg::Node> node,
                    const bool& showNode,
-                   const bool& replace)
+                   const bool& addToDisplay)
 {
     // by default enable the node
     static const bool enableNode(true);
@@ -108,7 +108,7 @@ bool TreeView::add(const std::string& name,
         // and give it the top level item in the model
         m_mutex.lock();
         d3DisplayItem* myItem(static_cast<d3DisplayItem*>(m_pModel->item(0)));
-        bool rv( add(name, node, enableNode, showNode, replace, myItem) );
+        bool rv( add(name, node, enableNode, showNode, addToDisplay, myItem) );
         m_mutex.unlock();
 
         // we're done
@@ -186,7 +186,7 @@ bool TreeView::add(const std::string& name,
                    const osg::ref_ptr<osg::Node> node,
                    const bool& enableNode,
                    const bool& showNode,
-                   const bool& replace,
+                   const bool& addToDisplay,
                    d3DisplayItem* myParent)
 {
     static const std::string splitIndicator("::");
@@ -204,23 +204,16 @@ bool TreeView::add(const std::string& name,
         std::string post( name.substr(nameSplit + splitIndicator.size(), name.size()) );
 
         // call the add parent
-        return addParent(pre, post, node, enableNode, showNode, replace, myParent);
+        return addParent(pre, post, node, enableNode, showNode, addToDisplay, myParent);
     }
 
     // this must be a leaf node... do we already have this child?
     d3DisplayItem* entry(findChild(myParent, name));
 
     // see if we need to create a new entry
-    if ( nullptr == entry )
-    {
-        return createNewEntry(name, node, enableNode, showNode, myParent);
-    }
-    else
-    {
-        return addToEntry(entry, node, enableNode, replace, myParent);
-    }
-
-    return false;
+    if ( not entry )
+        return createNewEntry(name, node, enableNode, showNode, addToDisplay, myParent);
+    return replaceNode(entry, node, enableNode, addToDisplay, myParent);
 };
 
 /////////////////////////////////////////////////////////////////
@@ -229,6 +222,7 @@ bool TreeView::createNewEntry(const std::string& name,
                               const osg::ref_ptr<osg::Node> node,
                               const bool& enableNode,
                               const bool& showNode,
+                              const bool& addToDisplay,
                               d3DisplayItem* myParent)
 {
     // create the entry for the item model
@@ -242,10 +236,15 @@ bool TreeView::createNewEntry(const std::string& name,
     // set to accomodate this width
     resizeColumnToContents(0);
 
-    // add the node to the osg tree
-    m_pOsgWidget->lock();
-    myParent->getNode()->asGroup()->addChild(node);
-    m_pOsgWidget->unlock();
+    // conditionally add the node to the osg tree
+    if ( addToDisplay )
+    {
+        m_pOsgWidget->lock();
+        myParent->getNode()->asGroup()->addChild(node);
+        m_pOsgWidget->unlock();
+    }
+
+    // conditionally show the node
     if ( not showNode )
     {
         entry->setCheckState(Qt::Unchecked);
@@ -258,32 +257,21 @@ bool TreeView::createNewEntry(const std::string& name,
 
 /////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////
-bool TreeView::addToEntry(d3DisplayItem* entry,
-                          const osg::ref_ptr<osg::Node> node,
-                          const bool& enableNode,
-                          const bool& replace,
-                          d3DisplayItem* myParent)
-{
-    // add in the new node (maybe replace)
-    if ( replace ) return replaceNode(entry, node, enableNode, myParent);
-    return                appendNode(entry, node, enableNode, myParent);
-};
-
-/////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////
 bool TreeView::replaceNode(d3DisplayItem* entry,
                            const osg::ref_ptr<osg::Node> node,
                            const bool& enableNode,
+                           const bool& addToDisplay,
                            d3DisplayItem* myParent)
 {
     // get the lock
     m_pOsgWidget->lock();
 
-    // remove this entry child from the display
-    myParent->getNode()->asGroup()->removeChild(entry->getNode());
-
     // set the new node mask to match the old one
     node->setNodeMask(entry->getNode()->getNodeMask());
+
+    // conditionally remove this entry child from the display
+    if ( addToDisplay )
+        myParent->getNode()->asGroup()->removeChild(entry->getNode());
 
     // now lock the model view
     m_mutex.lock();
@@ -295,59 +283,12 @@ bool TreeView::replaceNode(d3DisplayItem* entry,
     // unlock the model view
     m_mutex.unlock();
 
-    // now the entry is ready, so add it back as a child to my parent
-    myParent->getNode()->asGroup()->addChild(entry->getNode());
+    // now the entry is ready, so conditinoally add it back as a child to my
+    // parent 
+    if ( addToDisplay )
+        myParent->getNode()->asGroup()->addChild(entry->getNode());
 
     // unlock osg
-    m_pOsgWidget->unlock();
-
-    return true;
-};
-
-/////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////
-bool TreeView::appendNode(d3DisplayItem* entry,
-                            const osg::ref_ptr<osg::Node> node,
-                            const bool& enableNode,
-                            d3DisplayItem* myParent)
-{
-    // get the osg lock
-    m_pOsgWidget->lock();
-
-    // get this node as a group
-    osg::ref_ptr<osg::Group> group(entry->getNode()->asGroup());
-    if ( not group )
-    {
-        // it's not a group, so make a new group and add this child
-        group = new osg::Group();
-        group->addChild(entry->getNode());
-
-        // since this is a new group, the node mask should match the entry
-        group->setNodeMask(entry->getNode()->getNodeMask());
-
-        // in this case we also need to remove this child from the display
-        myParent->getNode()->asGroup()->removeChild(entry->getNode());
-
-        // now lock the model view and set the node and enabled flag for
-        // our new group
-        m_mutex.lock();
-        entry->setNode(group);
-        entry->getNode()->setNodeMask(~0);
-        m_mutex.unlock();
-
-        // now add this new group
-        myParent->getNode()->asGroup()->addChild(entry->getNode());
-    }
-
-    // set the enableNode flag
-    m_mutex.lock();
-    entry->setEnabled(enableNode);
-    m_mutex.unlock();
-
-    // add this node to the group
-    group->addChild(node);
-
-    // now we can unlock osg
     m_pOsgWidget->unlock();
 
     return true;
@@ -360,7 +301,7 @@ bool TreeView::addParent(const std::string& parentName,
                          const osg::ref_ptr<osg::Node> node,
                          const bool& enableNode,
                          const bool& showNode,
-                         const bool& replace,
+                         const bool& addToDisplay,
                          d3DisplayItem* myParent)
 {
     // see if the parent we are about to add as an offspring already exists
@@ -395,8 +336,8 @@ bool TreeView::addParent(const std::string& parentName,
     osg::Group* group( entry->getNode()->asGroup() );
     if ( group )
     {
-        // now we can recurse with this itemf
-        return add(childName, node, enableNode, showNode, replace, entry);
+        // now we can recurse with this item
+        return add(childName, node, enableNode, showNode, addToDisplay, entry);
     }
 
     // it wasn't a group...

@@ -98,9 +98,10 @@ class DisplayInterface
     /// @param   name The name of the thing we are adding - a note on the naming
     ///          convention is below
     /// @param   node The osg node we are adding
-    /// @param   replace Should we replace the node if "name" already exists
-    ///          (i.e. if false, it will just be appended to the current node
-    ///          group)
+    /// @param   addToDisplay Should we add this node to the display? In some
+    ///          cases the node may already be a part of the scene graph, so we
+    ///          don't really need to add it here, we just want to maintain its
+    ///          visibility in the tree view.
     /// @return  boolean True implies success
     ///
     /// This is the main method used to add an osg node to the display by
@@ -141,7 +142,7 @@ class DisplayInterface
     /// desired.
     bool add(const std::string& name,
              const osg::ref_ptr<osg::Node> node,
-             const bool& replace = true);
+             const bool& addToDisplay = true);
 
     /// @brief   Method to add a function bound to a keypress
     /// @param   key The key to bind to this function

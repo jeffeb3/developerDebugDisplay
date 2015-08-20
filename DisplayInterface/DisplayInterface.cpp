@@ -48,7 +48,7 @@ std::shared_ptr<DisplayInterface> DisplayInterface::get()
 /////////////////////////////////////////////////////////////////
 bool DisplayInterface::add(const std::string& name,
                            const osg::ref_ptr<osg::Node> node,
-                           const bool& replace /* = true */)
+                           const bool& addToDisplay /* = true */)
 {
     // we have data - the display thread needs to know this before we setup the
     // main window
@@ -68,7 +68,7 @@ bool DisplayInterface::add(const std::string& name,
     // add this node to the tree view
     // @note: the setupMainWindow() also sets up the tree view.
     static const bool showNode(true);
-    return m_pTreeView->add(name, node, showNode, replace);
+    return m_pTreeView->add(name, node, showNode, addToDisplay);
 };
 
 /////////////////////////////////////////////////////////////////
