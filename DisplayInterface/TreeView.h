@@ -54,12 +54,15 @@ class TreeView : public QTreeView
     ///          text by the checkbox that will be used to control the display
     /// @param   showNode A flag to indicate if the node should be shown
     ///          initially or not
-    /// @param   replace If a node with the same "name" already exists, should
-    ///          we replace it, or just append it as a group
+    /// @param   addToDisplay A flag to indicate if we should add this node to
+    ///          the display graph. It's possible to have already added a node
+    ///          to the display graph and you just want the tree-view to manage
+    ///          that node. Setting this to false will not alter the osg display
+    ///          graph in any way, assuming that's been done externally.
     bool add(const std::string& name,
              const osg::ref_ptr<osg::Node> node,
              const bool& showNode,
-             const bool& replace);
+             const bool& addToDisplay = true);
 
   public Q_SLOTS:
 
@@ -124,14 +127,12 @@ class TreeView : public QTreeView
     /// @param   node The node to display
     /// @param   enableNode Should the entry be enabled (grayed out or not?)
     /// @param   showNode Should the node be displayed or not (checked or not?)
-    /// @param   replace Should we append or overwrite an existing node with the
-    ///          same name?
     /// @param   myParent The parent so we can call this recursively
     bool add(const std::string& name,
              const osg::ref_ptr<osg::Node> node,
              const bool& enableNode,
              const bool& showNode,
-             const bool& replace,
+             const bool& addToDisplay,
              d3DisplayItem* myParent);
 
     /// @brief   Create a new entry in the model view
@@ -139,45 +140,26 @@ class TreeView : public QTreeView
     /// @param   node The node to display
     /// @param   enableNode Should the entry be enabled (grayed out or not?)
     /// @param   showNode Should the node be displayed or not (checked or not?)
+    /// @param   addToDisplay Should we add this to the osg display graph
     /// @param   myParent The parent so we can call this recursively
     bool createNewEntry(const std::string& name,
                         const osg::ref_ptr<osg::Node> node,
                         const bool& enableNode,
                         const bool& showNode,
+                        const bool& addToDisplay,
                         d3DisplayItem* myParent);
-
-    /// @brief   Method to add to an existing entry
-    /// @param   entry The entry to add to
-    /// @param   node The node to display
-    /// @param   enableNode Should the entry be enabled (grayed out or not?)
-    /// @param   replace Should we append or overwrite an existing node with the
-    ///          same name?
-    /// @param   myParent The parent so we can call this recursively
-    bool addToEntry(d3DisplayItem* entry,
-                    const osg::ref_ptr<osg::Node> node,
-                    const bool& enableNode,
-                    const bool& replace,
-                    d3DisplayItem* myParent);
 
     /// @brief   Method to replace a node
     /// @param   entry The entry to add to
     /// @param   node The node to display
     /// @param   enableNode Should the entry be enabled (grayed out or not?)
+    /// @param   addToDisplay Should we add this to the osg display graph
     /// @param   myParent The parent so we can call this recursively
     bool replaceNode(d3DisplayItem* entry,
                      const osg::ref_ptr<osg::Node> node,
                      const bool& enableNode,
+                     const bool& addToDisplay,
                      d3DisplayItem* myParent);
-
-    /// @brief   Method to append to a node
-    /// @param   entry The entry to add to
-    /// @param   node The node to display
-    /// @param   enableNode Should the entry be enabled (grayed out or not?)
-    /// @param   myParent The parent so we can call this recursively
-    bool appendNode(d3DisplayItem* entry,
-                    const osg::ref_ptr<osg::Node> node,
-                    const bool& enableNode,
-                    d3DisplayItem* myParent);
 
     /// @brief   Place to add the parent
     /// @param   parentName The name of the parent to add
@@ -185,14 +167,13 @@ class TreeView : public QTreeView
     /// @param   node The final child node that will get added (recursion)
     /// @param   enableNode The enableNode flag (recursion)
     /// @param   showNode The showNode flag (recursion)
-    /// @param   replace The replace flag (recursion)
     /// @parem   myParent The parent node to add this parent to
     bool addParent(const std::string& parentName,
                    const std::string& childName,
                    const osg::ref_ptr<osg::Node> node,
                    const bool& enableNode,
                    const bool& showNode,
-                   const bool& replace,
+                   const bool& addToDisplay,
                    d3DisplayItem* myParent);
 
     /// @brief   Method to find and return a pointer to the child of parent with name

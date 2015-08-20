@@ -79,7 +79,7 @@ void QOSGWidget::initialize()
     // set the root
     m_pOsgViewer->setSceneData( m_pRoot );
 
-    // Set the SceneRoot to normalise normals when scaling is applied to objects.
+    // set the SceneRoot to normalise normals when scaling is applied to objects.
     m_pRoot->getOrCreateStateSet()->setMode(GL_NORMALIZE, osg::StateAttribute::ON);
 
     // here is a simple camera
