@@ -91,7 +91,8 @@ class TreeView : public QTreeView
                       const osg::ref_ptr<osg::Node> node) :
             QStandardItem(QString(name.c_str())),
             m_name(name),
-            m_node(node)
+            m_node(node),
+            m_priorNodeMask(node->getNodeMask())
         {
             setEditable(true);
             setCheckable(true);
