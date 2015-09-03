@@ -13,6 +13,8 @@
 #include <osg/Vec4>
 #include <vector>
 
+#include <mutex>
+
 namespace d3
 {
 
@@ -52,6 +54,9 @@ class Colors
 /// @brief   Provide a method to get the next color in a static sense
 inline osg::Vec4 nextColor()
 {
+    static std::mutex mtx;
+    std::lock_guard<std::mutex> lck(mtx);
+    
     static Colors colors;
     return colors.next();
 };
