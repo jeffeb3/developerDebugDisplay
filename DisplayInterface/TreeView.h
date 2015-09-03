@@ -38,6 +38,69 @@ class TreeView : public QTreeView
 
   public:
 
+    /////////////////////////////////////////////////////////////////
+    /// @brief   Override the standard qitem for the tree view so we can hold an
+    ///          osg node and name of the item
+    /////////////////////////////////////////////////////////////////
+    class d3DisplayItem : public QStandardItem
+    {
+      public:
+        /// @brief   Construct with a name and node
+        /// @param   name The name of the node
+        /// @param   node The node to add to this item
+        /// @param   clickCallback The func to run at the end of the "clicked"
+        ///          event for an item, also runs when item is expanded or
+        ///          collapsed
+        d3DisplayItem(const std::string& name,
+                      const std::string& path,
+                      const osg::ref_ptr<osg::Node> node,
+                      std::function<void(d3DisplayItem*)>&& clickCallback) :
+            QStandardItem(QString(name.c_str())),
+            m_name(name),
+            m_path(path),
+            m_node(node),
+            m_priorNodeMask(node->getNodeMask()),
+            m_clickCallback(clickCallback)
+        {
+            setEditable(true);
+            setCheckable(true);
+            setCheckState(Qt::Checked);
+        };
+
+        /// @brief   The destructor
+        virtual ~d3DisplayItem() {};
+
+        /// @{
+        /// @brief   Accessors
+        const std::string& getName() const { return m_name; };
+        const std::string& getPath() const { return m_path; };
+        const osg::ref_ptr<osg::Node> getNode()  { return m_node; };
+        void setNode(osg::ref_ptr<osg::Node> node) { m_node = node; };
+        void setPriorNodeMask(const osg::Node::NodeMask& mask) { m_priorNodeMask = mask; };
+        const osg::Node::NodeMask& getPriorNodeMask() const { return m_priorNodeMask; };
+        /// @}
+
+        /// Method to run the click callback
+        void runClickCallback(d3DisplayItem* item) const { m_clickCallback(item); };
+
+      private:
+
+        /// The name
+        std::string                                 m_name;
+
+        /// The path (i.e. the full grandparent::parent::child name)
+        std::string                                 m_path;
+
+        /// The node
+        osg::ref_ptr<osg::Node>                     m_node;
+
+        /// The old node mask
+        osg::Node::NodeMask                         m_priorNodeMask;
+
+        /// A registered function to run on click
+        std::function<void(d3DisplayItem*)>         m_clickCallback;
+    };
+
     /// @brief   Constructor
     TreeView();
 
@@ -60,13 +123,19 @@ class TreeView : public QTreeView
     ///          to the display graph and you just want the tree-view to manage
     ///          that node. Setting this to false will not alter the osg display
     ///          graph in any way, assuming that's been done externally.
-    /// @param   clickCallback A function that can be called from the user whenever
+    /// @param   clickCallback A function that is called from the user whenever
     ///          this item is clicked
+    /// @param   creationCallback A function that is called at creation time of
+    ///          new item. This is useful for setting some of the state of a
+    ///          created item should the user desire that, after it's been added
+    ///          to the model view.
     bool add(const std::string& name,
              const osg::ref_ptr<osg::Node> node,
              const bool& showNode,
              const bool& addToDisplay = true,
-             std::function<void()>&& clickCallback = [](){});
+             std::function<void(d3DisplayItem*)>&& clickCallback = [](d3DisplayItem*){},
+             std::function<void(d3DisplayItem*)>&& creationCallback = [](d3DisplayItem*){});
+             
 
   public Q_SLOTS:
 
@@ -81,72 +150,19 @@ class TreeView : public QTreeView
 
   private:
 
-    /////////////////////////////////////////////////////////////////
-    /// @brief   Override the standard qitem for the tree view so we can hold an
-    ///          osg node and name of the item
-    /////////////////////////////////////////////////////////////////
-    class d3DisplayItem : public QStandardItem
-    {
-      public:
-        /// @brief   Construct with a name and node
-        /// @param   name The name of the node
-        /// @param   node The node to add to this item
-        /// @param   func The func to run at the end of the "clicked" event for
-        ///          an item
-        d3DisplayItem(const std::string& name,
-                      const osg::ref_ptr<osg::Node> node,
-                      std::function<void()>&& func) :
-            QStandardItem(QString(name.c_str())),
-            m_name(name),
-            m_node(node),
-            m_priorNodeMask(node->getNodeMask()),
-            m_func(func)
-        {
-            setEditable(true);
-            setCheckable(true);
-            setCheckState(Qt::Checked);
-        };
-
-        /// @brief   The destructor
-        virtual ~d3DisplayItem() {};
-
-        /// @{
-        /// @brief   Accessors
-        const std::string& getName() const { return m_name; };
-        const osg::ref_ptr<osg::Node> getNode()  { return m_node; };
-        void setNode(osg::ref_ptr<osg::Node> node) { m_node = node; };
-        void setPriorNodeMask(const osg::Node::NodeMask& mask) { m_priorNodeMask = mask; };
-        const osg::Node::NodeMask& getPriorNodeMask() const { return m_priorNodeMask; };
-        /// @}
-
-        /// Method to run the func
-        void runFunc() const { m_func(); };
-
-      private:
-
-        /// The name
-        std::string                 m_name;
-
-        /// The node
-        osg::ref_ptr<osg::Node>     m_node;
-
-        /// The old node mask
-        osg::Node::NodeMask         m_priorNodeMask;
-
-        /// A registered function to run on click
-        std::function<void()>       m_func;
-    };
-
     /// @brief   Internal ethod to add an object to the osg display
     /// @param   name The name to use in the model view
     /// @param   node The node to display
-    /// @param   func A function to call on clicked handle
+    /// @param   clickCallback A function to call on clicked handle
+    /// @param   creationCallback A function called at item creation
     /// @param   enableNode Should the entry be enabled (grayed out or not?)
     /// @param   showNode Should the node be displayed or not (checked or not?)
     /// @param   myParent The parent so we can call this recursively
     bool add(const std::string& name,
+             const std::string& path,
              const osg::ref_ptr<osg::Node> node,
-             std::function<void()>&& func,
+             std::function<void(d3DisplayItem*)>&& clickCallback,
+             std::function<void(d3DisplayItem*)>&& creationCallback,
              const bool& enableNode,
              const bool& showNode,
              const bool& addToDisplay,
@@ -154,15 +170,19 @@ class TreeView : public QTreeView
 
     /// @brief   Create a new entry in the model view
     /// @param   name The name to use in the model view
+    /// @param   path The path to this node, i.e. grandparentName::parentName::childName
     /// @param   node The node to display
-    /// @param   func A function to call on clicked handle
+    /// @param   clickCallback A function to call on clicked handle
+    /// @param   creationCallback A function called at item creation
     /// @param   enableNode Should the entry be enabled (grayed out or not?)
     /// @param   showNode Should the node be displayed or not (checked or not?)
     /// @param   addToDisplay Should we add this to the osg display graph
     /// @param   myParent The parent so we can call this recursively
     bool createNewEntry(const std::string& name,
+                        const std::string& path,
                         const osg::ref_ptr<osg::Node> node,
-                        std::function<void()>&& func,
+                        std::function<void(d3DisplayItem*)>&& clickCallback,
+                        std::function<void(d3DisplayItem*)>&& creationCallback,
                         const bool& enableNode,
                         const bool& showNode,
                         const bool& addToDisplay,
@@ -171,13 +191,13 @@ class TreeView : public QTreeView
     /// @brief   Method to replace a node
     /// @param   entry The entry to add to
     /// @param   node The node to display
-    /// @param   func A function to call on clicked handle
+    /// @param   clickCallback A function to call on clicked handle
     /// @param   enableNode Should the entry be enabled (grayed out or not?)
     /// @param   addToDisplay Should we add this to the osg display graph
     /// @param   myParent The parent so we can call this recursively
     bool replaceNode(d3DisplayItem* entry,
                      const osg::ref_ptr<osg::Node> node,
-                     std::function<void()>&& func,
+                     std::function<void(d3DisplayItem*)>&& clickCallback,
                      const bool& enableNode,
                      const bool& addToDisplay,
                      d3DisplayItem* myParent);
@@ -186,14 +206,17 @@ class TreeView : public QTreeView
     /// @param   parentName The name of the parent to add
     /// @param   childName The *rest* of the name to pass back for recursion
     /// @param   node The final child node that will get added (recursion)
-    /// @param   func A function to call on clicked handle
+    /// @param   clickCallback A function to call on clicked handle
+    /// @param   creationCallback A function called at item creation time
     /// @param   enableNode The enableNode flag (recursion)
     /// @param   showNode The showNode flag (recursion)
     /// @parem   myParent The parent node to add this parent to
     bool addParent(const std::string& parentName,
                    const std::string& childName,
+                   const std::string& path,
                    const osg::ref_ptr<osg::Node> node,
-                   std::function<void()>&& func,
+                   std::function<void(d3DisplayItem*)>&& clickCallback,
+                   std::function<void(d3DisplayItem*)>&& creationCallback,
                    const bool& enableNode,
                    const bool& showNode,
                    const bool& addToDisplay,
