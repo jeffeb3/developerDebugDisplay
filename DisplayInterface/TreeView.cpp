@@ -79,8 +79,9 @@ void TreeView::setOsgWidget(QOSGWidget* widget)
 
     // setup the top level entry for the root node
     d3DisplayItem* topEntry(new d3DisplayItem("All Displayed Items",
+                                              "All Displayed Items",
                                               m_pOsgWidget->getRootGroup(),
-                                              [](){}));
+                                              [](d3DisplayItem*){}));
     m_pModel->appendRow(topEntry);
 
     // set to accomodate this width
@@ -99,7 +100,8 @@ bool TreeView::add(const std::string& name,
                    const osg::ref_ptr<osg::Node> node,
                    const bool& showNode,
                    const bool& addToDisplay,
-                   std::function<void()>&& clickCallback)
+                   std::function<void(d3DisplayItem*)>&& clickCallback,
+                   std::function<void(d3DisplayItem*)>&& creationCallback)
 {
     // by default enable the node
     static const bool enableNode(true);
@@ -112,8 +114,10 @@ bool TreeView::add(const std::string& name,
         m_mutex.lock();
         d3DisplayItem* myItem(static_cast<d3DisplayItem*>(m_pModel->item(0)));
         bool rv( add(name,
+                     name,
                      node,
                      std::move(clickCallback),
+                     std::move(creationCallback),
                      enableNode,
                      showNode,
                      addToDisplay,
@@ -154,7 +158,10 @@ void TreeView::clicked(const QModelIndex& index)
         if ( Qt::Checked == item->checkState() )
         {
             //item->getNode()->setNodeMask(~0);
-            item->getNode()->setNodeMask(item->getPriorNodeMask());
+            if ( item->isEnabled() )
+                item->getNode()->setNodeMask(item->getPriorNodeMask());
+            else
+                item->getNode()->setNodeMask(0);
         }
         else
         {
@@ -174,7 +181,7 @@ void TreeView::clicked(const QModelIndex& index)
         m_mutex.unlock();
 
         // run any registered function
-        item->runFunc();
+        item->runClickCallback(item);
     }
 };
 
@@ -183,6 +190,8 @@ void TreeView::clicked(const QModelIndex& index)
 void TreeView::expanded(const QModelIndex& index)
 {
     resizeColumnToContents(0);
+    auto item( static_cast<d3DisplayItem*>(m_pModel->itemFromIndex(index)) );
+    if ( item ) item->runClickCallback(item);
 };
 
 /////////////////////////////////////////////////////////////////
@@ -190,6 +199,8 @@ void TreeView::expanded(const QModelIndex& index)
 void TreeView::collapsed(const QModelIndex& index)
 {
     resizeColumnToContents(0);
+    auto item( static_cast<d3DisplayItem*>(m_pModel->itemFromIndex(index)) );
+    if ( item ) item->runClickCallback(item);
 };
 
 /////////////////////////////////////////////////////////////////
@@ -199,8 +210,10 @@ void TreeView::collapsed(const QModelIndex& index)
 /////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////
 bool TreeView::add(const std::string& name,
+                   const std::string& path,
                    const osg::ref_ptr<osg::Node> node,
-                   std::function<void()>&& func,
+                   std::function<void(d3DisplayItem*)>&& clickCallback,
+                   std::function<void(d3DisplayItem*)>&& creationCallback,
                    const bool& enableNode,
                    const bool& showNode,
                    const bool& addToDisplay,
@@ -223,8 +236,10 @@ bool TreeView::add(const std::string& name,
         // call the add parent
         return addParent(pre,
                          post,
+                         path,
                          node,
-                         std::move(func),
+                         std::move(clickCallback),
+                         std::move(creationCallback),
                          enableNode,
                          showNode,
                          addToDisplay,
@@ -237,15 +252,17 @@ bool TreeView::add(const std::string& name,
     // see if we need to create a new entry
     if ( not entry )
         return createNewEntry(name,
+                              path,
                               node,
-                              std::move(func),
+                              std::move(clickCallback),
+                              std::move(creationCallback),
                               enableNode,
                               showNode,
                               addToDisplay,
                               myParent);
     return replaceNode(entry,
                        node,
-                       std::move(func),
+                       std::move(clickCallback),
                        enableNode,
                        addToDisplay,
                        myParent);
@@ -254,15 +271,20 @@ bool TreeView::add(const std::string& name,
 /////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////
 bool TreeView::createNewEntry(const std::string& name,
+                              const std::string& path,
                               const osg::ref_ptr<osg::Node> node,
-                              std::function<void()>&& func,
+                              std::function<void(d3DisplayItem*)>&& clickCallback,
+                              std::function<void(d3DisplayItem*)>&& creationCallback,
                               const bool& enableNode,
                               const bool& showNode,
                               const bool& addToDisplay,
                               d3DisplayItem* myParent)
 {
     // create the entry for the item model
-    d3DisplayItem* entry( new d3DisplayItem(name, node, std::move(func)) );
+    d3DisplayItem* entry( new d3DisplayItem(name,
+                                            path,
+                                            node,
+                                            std::move(clickCallback)) );
     entry->setEnabled(enableNode);
 
     // add this entry to the item model
@@ -286,6 +308,10 @@ bool TreeView::createNewEntry(const std::string& name,
         entry->setCheckState(Qt::Unchecked);
         clicked(m_pModel->indexFromItem(entry));
     }
+
+    // call the creation callback
+    creationCallback(entry);
+    
     m_mutex.unlock();
 
     return true;
@@ -295,7 +321,7 @@ bool TreeView::createNewEntry(const std::string& name,
 /////////////////////////////////////////////////////////////////
 bool TreeView::replaceNode(d3DisplayItem* entry,
                            const osg::ref_ptr<osg::Node> node,
-                           std::function<void()>&& func,
+                           std::function<void(d3DisplayItem*)>&& clickCallback,
                            const bool& enableNode,
                            const bool& addToDisplay,
                            d3DisplayItem* myParent)
@@ -335,8 +361,10 @@ bool TreeView::replaceNode(d3DisplayItem* entry,
 /////////////////////////////////////////////////////////////////
 bool TreeView::addParent(const std::string& parentName,
                          const std::string& childName,
+                         const std::string& path,
                          const osg::ref_ptr<osg::Node> node,
-                         std::function<void()>&& func,
+                         std::function<void(d3DisplayItem*)>&& clickCallback,
+                         std::function<void(d3DisplayItem*)>&& creationCallback,
                          const bool& enableNode,
                          const bool& showNode,
                          const bool& addToDisplay,
@@ -349,7 +377,10 @@ bool TreeView::addParent(const std::string& parentName,
     if ( nullptr == entry )
     {
         // here is the entry named by the firstPart as a group
-        entry = new d3DisplayItem(parentName, new osg::Group(), std::move(func));
+        entry = new d3DisplayItem(parentName,
+                                  path,
+                                  new osg::Group(),
+                                  std::move(clickCallback));
         entry->setEnabled(true);
 
         // lock
@@ -366,6 +397,9 @@ bool TreeView::addParent(const std::string& parentName,
         // set to accomodate this width
         resizeColumnToContents(0);
 
+        // call the creation callback as we have created this thing
+        creationCallback(entry);
+
         // unlock
         m_mutex.unlock();
     }
@@ -376,8 +410,10 @@ bool TreeView::addParent(const std::string& parentName,
     {
         // now we can recurse with this item
         return add(childName,
+                   path,
                    node,
-                   std::move(func),
+                   std::move(clickCallback),
+                   std::move(creationCallback),
                    enableNode,
                    showNode,
                    addToDisplay,
@@ -394,7 +430,7 @@ bool TreeView::addParent(const std::string& parentName,
 /////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////
 TreeView::d3DisplayItem* TreeView::findChild(const d3DisplayItem* myParent,
-                                                 const std::string& name)
+                                             const std::string& name)
 {
     // go through the list of rows and see if we can find an entry with "name"
     for ( int ii=0 ; ii<myParent->rowCount() ; ++ii )
