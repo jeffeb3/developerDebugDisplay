@@ -81,8 +81,9 @@ class TreeView : public QTreeView
         /// @}
 
         /// Method to run the click callback
-        void runClickCallback(d3DisplayItem* item) const { m_clickCallback(item); };
-
+        //void runClickCallback(d3DisplayItem* item) const { m_clickCallback(item); };
+        void runClickCallback() { m_clickCallback(this); };
+        
       private:
 
         /// The name

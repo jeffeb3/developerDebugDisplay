@@ -181,7 +181,7 @@ void TreeView::clicked(const QModelIndex& index)
         m_mutex.unlock();
 
         // run any registered function
-        item->runClickCallback(item);
+        item->runClickCallback();
     }
 };
 
@@ -191,7 +191,7 @@ void TreeView::expanded(const QModelIndex& index)
 {
     resizeColumnToContents(0);
     auto item( static_cast<d3DisplayItem*>(m_pModel->itemFromIndex(index)) );
-    if ( item ) item->runClickCallback(item);
+    if ( item ) item->runClickCallback();
 };
 
 /////////////////////////////////////////////////////////////////
@@ -200,7 +200,7 @@ void TreeView::collapsed(const QModelIndex& index)
 {
     resizeColumnToContents(0);
     auto item( static_cast<d3DisplayItem*>(m_pModel->itemFromIndex(index)) );
-    if ( item ) item->runClickCallback(item);
+    if ( item ) item->runClickCallback();
 };
 
 /////////////////////////////////////////////////////////////////
