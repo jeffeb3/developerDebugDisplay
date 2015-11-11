@@ -251,6 +251,24 @@ bool DisplayInterface::setRootGroup(osg::ref_ptr<osg::Group> rootGroup)
 };
 
 /////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////
+void DisplayInterface::pause()
+{
+    std::unique_lock<std::mutex> lck(m_pauseMutex);
+    std::cout << "Pausing" << std::endl;
+    m_pauseNotifier.wait(lck);
+    std::cout << "...done pausing" << std::endl;
+};
+
+/////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////
+void DisplayInterface::unpause()
+{
+    std::cout << "calling to unpause" << std::endl;
+    m_pauseNotifier.notify_all();
+};
+
+/////////////////////////////////////////////////////////////////
 ///////////////////// PRIVATES /////////////////////////////////
 ///////////////////////////////////////////////////////////////
 
@@ -265,7 +283,9 @@ DisplayInterface::DisplayInterface() :
     m_haveData(false),
     m_setupComplete(false),
     m_displayThread(),
-    m_threadShouldRun(true)
+    m_threadShouldRun(true),
+    m_pauseMutex(),
+    m_pauseNotifier()
 {
     m_displayThread =
         std::thread

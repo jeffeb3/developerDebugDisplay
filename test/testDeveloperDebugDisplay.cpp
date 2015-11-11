@@ -40,6 +40,29 @@
 
 int main(int argc, char* argv[])
 {
+    d3::di().add( "ground", d3::ground() );
+    d3::di().add( "origin", d3::origin() );
+    osg::ref_ptr<osg::Image> img0(osgDB::readImageFile("logo.png"));
+    if ( img0 )
+    {
+        std::array<osg::Vec3,4> corners;
+        corners[0] = {0.0,0.0,0.0};
+        corners[1] = {15.0,0.0,0.0};
+        corners[2] = {15.0,10.0,0.0};
+        corners[3] = {0.0,10.0,0.0};
+        d3::di().add( "image::pic", d3::get(d3::Image{img0, corners}) );
+    }
+    d3::di().add( 'p',
+                  [&](const osgGA::GUIEventAdapter& ev)->bool
+                  {
+                      d3::di().unpause();
+                      return true;
+                  },
+                  "unpause" );
+
+    d3::di().pause();
+
+    
     // bulid a cell array
     d3::VoxelVec_t cells;
     osg::Vec3d halfCell{0.1, 0.1, 0.5};
