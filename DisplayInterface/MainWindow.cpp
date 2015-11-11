@@ -156,14 +156,14 @@ void MainWindow::setFullScreen(bool fullscreen)
 /////////////////////////////////////////////////////////////////
 void MainWindow::grabSnapshot(bool)
 {
-    m_pOsgWidget->getScreenshotCallback()->grab();
+    m_pOsgWidget->grabSnapshot();
 };
 
 /////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////
 void MainWindow::continuousCapture(bool checked)
 {
-    m_pOsgWidget->getScreenshotCallback()->setCapture(checked);
+    m_pOsgWidget->setCapture(checked);
     static osg::Vec4 clearColor(m_pOsgWidget->getClearColor());
     if ( checked )
     {

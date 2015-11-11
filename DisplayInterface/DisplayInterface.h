@@ -256,6 +256,13 @@ class DisplayInterface
     /// looking for in this case.
     bool setRootGroup(osg::ref_ptr<osg::Group> rootGroup);
 
+    /// @brief   Capture a snapshot of the current scene programatically
+    void grabSnapshot();
+
+    /// @brief   Start/stop video capture
+    /// @param   capture Flag to indicate start/stopping of the capture
+    void continuousCapture(const bool& capture);
+
     /// @brief   Provide a mechanism to pause processing
     void pause();
 

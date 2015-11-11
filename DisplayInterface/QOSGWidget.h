@@ -163,8 +163,12 @@ class QOSGWidget : public QGLWidget
     inline osg::ref_ptr<osgGA::CameraManipulator> getManipulator() { return m_currentManipulator; };
 
     /// @brief   Get at the screenshot callback
-    inline osg::ref_ptr<ScreenshotCallback>& getScreenshotCallback() { return m_pScreenshotCallback; };
+    inline void grabSnapshot() { m_pScreenshotCallback->grab(); };
 
+    /// @brief   Set to start frame capture
+    /// @param   capture Flag to turn on/off capturing
+    inline void setCapture(const bool& capture) { m_pScreenshotCallback->setCapture(capture); };
+    
     /// @brief   Update the GL for the widget
     virtual void updateGL();
 
@@ -212,6 +216,7 @@ class QOSGWidget : public QGLWidget
     /// The osg viewer
     osg::ref_ptr<osgViewer::Viewer>                                     m_pOsgViewer;
 
+    /// The list of currently available manipulators
     std::map<SupportedManipulator, osg::ref_ptr<osgGA::CameraManipulator>> m_availableManipulators;
         
     /// The current manipulator
