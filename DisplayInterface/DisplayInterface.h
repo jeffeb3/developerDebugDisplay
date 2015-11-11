@@ -256,6 +256,19 @@ class DisplayInterface
     /// looking for in this case.
     bool setRootGroup(osg::ref_ptr<osg::Group> rootGroup);
 
+    /// @brief   Capture a snapshot of the current scene programatically
+    void grabSnapshot();
+
+    /// @brief   Start/stop video capture
+    /// @param   capture Flag to indicate start/stopping of the capture
+    void continuousCapture(const bool& capture);
+
+    /// @brief   Provide a mechanism to pause processing
+    void pause();
+
+    /// @brief   Also need to be able to unpause processing
+    void unpause();
+    
   private:
 
     /// @brief   Hidden constructor
@@ -311,6 +324,12 @@ class DisplayInterface
 
     /// flag for thread
     bool                          m_threadShouldRun;
+
+    /// a mutex to use for pausing the display
+    std::mutex                    m_pauseMutex;
+
+    /// a notifier to wake us up from a paused state
+    std::condition_variable       m_pauseNotifier;
 };
 
 } // namespace d3
