@@ -137,6 +137,18 @@ int main(int argc, char* argv[])
                   },
                   "Typing \'j\' is cool" );
 
+    d3::di().add(osgGA::GUIEventAdapter::KeySymbol::KEY_Right,
+                 [&](const osgGA::GUIEventAdapter& ea)->bool
+                 {
+                     if ( osgGA::GUIEventAdapter::KEYDOWN == ea.getEventType() )
+                     {
+                         std::cout << "right" << std::endl;
+                         return true;
+                     }
+                     return false;
+                 },
+                 "Move to the right");
+    
     d3::di().add( 'j',
                   [&](const osgGA::GUIEventAdapter& ev)->bool
                    {
