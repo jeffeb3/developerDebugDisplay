@@ -193,9 +193,7 @@ void QOSGWidget::trackNode(const osg::ref_ptr<osg::Node>& node,
     {
         nodeTracker->setTrackerMode(osgGA::NodeTrackerManipulator::NODE_CENTER_AND_ROTATION);
         nodeTracker->setRotationMode(osgGA::NodeTrackerManipulator::TRACKBALL);
-        nodeTracker->setHomePosition({ 0.0, 0.0,100.0},
-                                     { 0.0, 0.0,  0.0},
-                                     { 0.0, 1.0,  0.0});
+        nodeTracker->setHomePosition(eye, center, up);
         nodeTracker->setTrackNode(node);
         setManipulator(SupportedManipulator::NODE_TRACKER);
     }
