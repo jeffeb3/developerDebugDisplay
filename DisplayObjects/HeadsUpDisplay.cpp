@@ -10,8 +10,6 @@
 
 #include "HeadsUpDisplay.h"
 
-#include <DDDisplayInterface/DisplayInterface.h>
-
 #include <osg/Projection>
 #include <osg/Geode>
 #include <osg/MatrixTransform>
