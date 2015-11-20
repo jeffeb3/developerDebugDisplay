@@ -196,18 +196,14 @@ HeadsUpDisplay::~HeadsUpDisplay()
 /////////////////////////////////////////////////////////////////
 void HeadsUpDisplay::setText(const std::string& text)
 {
-    di().lock();
     m_text->setText(text);
-    di().unlock();
 };
 
 /////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////
 void HeadsUpDisplay::setTextColor(const osg::Vec4& color)
 {
-    di().lock();
     m_text->setColor(color);
-    di().unlock();
 };
 
 /////////////////////////////////////////////////////////////////
@@ -222,14 +218,12 @@ void HeadsUpDisplay::setBackgroundColor(const osg::Vec4& color)
     hudcolors->push_back( color );
 
     // set the color in the backgroun geometry
-    di().lock();
 #if      OSG_MIN_VERSION_REQUIRED(3,2,0)
     m_hudBackgroundGeometry->setColorArray(hudcolors, osg::Array::Binding::BIND_PER_VERTEX);
 #else    // OSG_MIN_VERSION_REQUIRED(3,2,0)
     m_hudBackgroundGeometry->setColorArray(hudcolors);
     m_hudBackgroundGeometry->setColorBinding(osg::Geometry::BIND_PER_VERTEX);
 #endif   // OSG_MIN_VERSION_REQUIRED(3,2,0)
-    di().unlock();
 };
 
 /////////////////////////////////////////////////////////////////
@@ -244,14 +238,12 @@ void HeadsUpDisplay::setDefaultBackgrounColor()
     hudcolors->push_back( {0.2, 0.2, 0.8, 0.1} );
 
     // set the color in the backgroun geometry
-    di().lock();
 #if      OSG_MIN_VERSION_REQUIRED(3,2,0)
     m_hudBackgroundGeometry->setColorArray(hudcolors, osg::Array::Binding::BIND_PER_VERTEX);
 #else    // OSG_MIN_VERSION_REQUIRED(3,2,0)
     m_hudBackgroundGeometry->setColorArray(hudcolors);
     m_hudBackgroundGeometry->setColorBinding(osg::Geometry::BIND_PER_VERTEX);
 #endif   // OSG_MIN_VERSION_REQUIRED(3,2,0)
-    di().unlock();
 };
 
 /////////////////////////////////////////////////////////////////
@@ -259,9 +251,7 @@ void HeadsUpDisplay::setDefaultBackgrounColor()
 void HeadsUpDisplay::show(const bool& display)
 {
     // set the node mask based on the display parameter
-    di().lock();
     m_root->setNodeMask(display?~0:0);
-    di().unlock();
 };
 
 /////////////////////////////////////////////////////////////////
